@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "geografija",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set NODE_ENV=production&& node --env-file=.env --enable-source-maps artifacts/api-server/dist/index.mjs"
+      ],
+      "port": 5080
+    }
+  ]
+}

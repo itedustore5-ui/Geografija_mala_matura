@@ -1,0 +1,60 @@
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# compiled output
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+npm-debug.log
+yarn-error.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# alati
+.cache/
+.local/
+
+# Tajne — nikad ne commit-ovati
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Lokalni izveštaji i privremeni fajlovi
+*.log
+.tmp/
+
+# Izvorna zbirka (skeniran PDF, ~88 MB) — ne ide u istoriju.
+# Pravilo hvata svaki PDF u korenu, da ne pukne ako se fajl preimenuje.
+/*.pdf
+
+# Rezervne kopije baze koje pravi skripta backup
+/backup/
