@@ -228,4 +228,3 @@ sitnija od 17px i tabele šire od kartice.
 - Nivoi po standardima: šifre standarda za geografiju nisu u skenu; bez njih se
   nivo ne unosi.
 - Testovi sa prethodnih završnih ispita (`scripts/import-exam.mjs`).
-- Repo još nije pod gitom.
