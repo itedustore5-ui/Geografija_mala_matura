@@ -56,5 +56,10 @@ Thumbs.db
 # Pravilo hvata svaki PDF u korenu, da ne pukne ako se fajl preimenuje.
 /*.pdf
 
+# Zvanični testovi sa završnog ispita i uputstva za pregledanje. Na svakoj
+# strani piše da se ne smeju umnožavati ni javno objavljivati bez saglasnosti
+# Zavoda, pa izvorni PDF-ovi ne idu u git (ni u javni repo).
+/zavrsni_testovi/
+
 # Rezervne kopije baze koje pravi skripta backup
 /backup/

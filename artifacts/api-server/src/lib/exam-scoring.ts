@@ -1,25 +1,35 @@
 import type { GridSpec, Question } from "../data/types";
 import { isScored } from "../data/types";
-import { cellsOf, parseCells, partCorrect, scoreAnswer, splitParts } from "./scoring";
+import {
+  cellsOf,
+  fieldAccepted,
+  parseCells,
+  partCorrect,
+  scoreAnswer,
+  splitParts,
+} from "./scoring";
 
 /**
- * Бодовање завршног испита.
+ * Бодовање теста са завршног испита — по упутству за прегледање Завода.
  *
- * Разлика у односу на вежбање: на испиту се код задатака са више ставки
- * (вишеструки избор, повезивање, табеле, редослед, тачно/нетачно, подвлачење,
- * задаци из више делова) признаје делимично тачан одговор. Зато овде не враћамо тачно/нетачно него број поена.
+ * Сва упутства (2023–2026) имају исто правило:
+ *   − задатак доноси највише 1 бод;
+ *   − за сваки одговор који се разликује од решења ученик добија 0 бодова;
+ *   − 0,5 бодова само где упутство то предвиђа (`halfPoint`), и увек на исти
+ *     начин: тачно је све осим једне ставке, а та ставка је остављена празна
+ *     („тачна три одговора – 1 бод; тачна два одговора и ниједан нетачан –
+ *     0,5 бодова“).
  *
- * Зашто нема казнених поена за погрешно означене ставке иако их неки кључеви
- * имају: збирка и званични кључеви са претходних испита не примењују исто
- * правило сваке године. Док се не унесе тест чији кључ то тражи, увођење казне
- * би променило резултате свих већ решених тестова уназад.
+ * Зато „две тачне и једна погрешна“ тврдња не носи ништа: нетачан одговор
+ * поништава делимичне поене. Раније је овде стајало сразмерно бодовање (две од
+ * три тачне = 0,5 и уз погрешну трећу), које ниједан кључ не примењује; тада
+ * још ниједан тест није био унет, па промена није дирала сачуване покушаје.
  */
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-/** Делимични поени се заокружују на пола поена, како је на испиту. */
-const toHalfPoints = (ratio: number, points: number) =>
-  round(Math.floor(ratio * points * 2) / 2);
+/** Ставке задатка: колико их има, колико је тачно, колико погрешно — остало је празно. */
+type Units = { total: number; correct: number; wrong: number };
 
 const parseIndices = (answer: string) =>
   answer
@@ -30,11 +40,22 @@ const parseIndices = (answer: string) =>
     .filter((n) => Number.isInteger(n));
 
 /**
- * Удео тачних редова табеле. Ред се признаје кад су у њему обојени тачно прави
- * кружићи — ред у коме не треба бојити ништа тако носи поен само ако је остао
- * празан, а ред са два тачна поља само ако су обојена оба.
+ * Позиција у одговору која показује избор; празна ставка је у клијенту -1 или
+ * празан низ, па се не броји ни као тачна ни као погрешна.
  */
-function gridRatio(grid: GridSpec, answer: string): number {
+const chosenAt = (answer: string, i: number): number | null => {
+  const raw = answer.split(",")[i]?.trim();
+  if (raw === undefined || raw === "") return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+};
+
+/**
+ * Ред табеле је тачан кад су у њему обојени тачно прави кружићи, а празан кад
+ * у њему нема ниједног — ред у коме по кључу не треба бојити ништа тако је
+ * тачан само ако је остао празан.
+ */
+function gridUnits(grid: GridSpec, answer: string): Units {
   const given = parseCells(answer);
   const correct = cellsOf(grid.correctCells);
   const inRow = (cells: Set<string>, row: number) =>
@@ -42,72 +63,112 @@ function gridRatio(grid: GridSpec, answer: string): number {
       .filter((c) => c.startsWith(`${row}-`))
       .sort()
       .join(",");
-  const hits = grid.rows.filter((_, row) => inRow(given, row) === inRow(correct, row)).length;
-  return hits / grid.rows.length;
+
+  let ok = 0;
+  let bad = 0;
+  grid.rows.forEach((_, row) => {
+    const mine = inRow(given, row);
+    if (mine === inRow(correct, row)) ok++;
+    else if (mine !== "") bad++;
+  });
+  return { total: grid.rows.length, correct: ok, wrong: bad };
+}
+
+/** Ставке задатка по типу; `null` за задатке који немају ставке (једноструки избор). */
+function unitsOf(q: Question, answer: string): Units | null {
+  switch (q.type) {
+    case "tf": {
+      const given = answer.split(",").map((v) => v.trim().toUpperCase());
+      let ok = 0;
+      let bad = 0;
+      q.correct.forEach((expected, i) => {
+        const mine = given[i];
+        if (mine !== "T" && mine !== "N") return;
+        if ((mine === "T") === expected) ok++;
+        else bad++;
+      });
+      return { total: q.correct.length, correct: ok, wrong: bad };
+    }
+
+    case "grid":
+      return gridUnits(q, answer);
+
+    case "match":
+    case "order": {
+      const expected = q.type === "match" ? q.correctPairs : q.correctOrder;
+      let ok = 0;
+      let bad = 0;
+      expected.forEach((v, i) => {
+        const mine = chosenAt(answer, i);
+        if (mine === null || (q.type === "order" && mine === 0)) return;
+        if (mine === v) ok++;
+        else bad++;
+      });
+      return { total: expected.length, correct: ok, wrong: bad };
+    }
+
+    case "multi":
+    case "pick": {
+      const correct = new Set(q.type === "multi" ? q.correctAnswers : q.correctTokens);
+      let ok = 0;
+      let bad = 0;
+      for (const g of new Set(parseIndices(answer))) {
+        if (correct.has(g)) ok++;
+        else bad++;
+      }
+      return { total: correct.size, correct: ok, wrong: bad };
+    }
+
+    case "fill": {
+      const given = answer.split("|");
+      let ok = 0;
+      let bad = 0;
+      q.fields.forEach((field, i) => {
+        const mine = given[i] ?? "";
+        if (mine.trim() === "") return;
+        if (fieldAccepted(field.accepted, mine)) ok++;
+        else bad++;
+      });
+      return { total: q.fields.length, correct: ok, wrong: bad };
+    }
+
+    case "parts": {
+      const given = splitParts(answer, q.parts.length);
+      let ok = 0;
+      let bad = 0;
+      q.parts.forEach((part, i) => {
+        const mine = given[i]!;
+        if (mine.trim() === "") return;
+        if (partCorrect(part, mine)) ok++;
+        else bad++;
+      });
+      return { total: q.parts.length, correct: ok, wrong: bad };
+    }
+
+    default:
+      return null;
+  }
 }
 
 export function scoreExamAnswer(question: Question, answer: string): number {
   if (!isScored(question)) return 0;
   if (!answer || answer.trim() === "") return 0;
 
-  // Потпуно тачан одговор увек носи све поене, без обзира на тип.
   if (scoreAnswer(question, answer)) return round(question.points);
+  if (!question.halfPoint) return 0;
 
-  switch (question.type) {
-    case "multi": {
-      const given = new Set(parseIndices(answer));
-      const correct = new Set(question.correctAnswers);
-      // Означена нетачна ставка поништава делимичне поене — иначе би ученик
-      // који означи све понуђено добио поене без икаквог знања.
-      for (const g of given) if (!correct.has(g)) return 0;
-      return toHalfPoints(given.size / correct.size, question.points);
-    }
-
-    case "match": {
-      const given = parseIndices(answer);
-      const hits = question.correctPairs.filter((v, i) => given[i] === v).length;
-      return toHalfPoints(hits / question.correctPairs.length, question.points);
-    }
-
-    case "order": {
-      const given = parseIndices(answer);
-      const hits = question.correctOrder.filter((v, i) => given[i] === v).length;
-      return toHalfPoints(hits / question.correctOrder.length, question.points);
-    }
-
-    case "tf": {
-      const given = answer.split(",").map((v) => v.trim().toUpperCase());
-      const hits = question.correct.filter(
-        (v, i) => given[i] === (v ? "T" : "N"),
-      ).length;
-      return toHalfPoints(hits / question.correct.length, question.points);
-    }
-
-    case "pick": {
-      const given = new Set(parseIndices(answer));
-      const correct = new Set(question.correctTokens);
-      for (const g of given) if (!correct.has(g)) return 0;
-      return toHalfPoints(given.size / correct.size, question.points);
-    }
-
-    case "grid":
-      return toHalfPoints(gridRatio(question, answer), question.points);
-
-    case "parts": {
-      // Сваки део носи исти удео; у делу-табели признају се тачни редови.
-      const given = splitParts(answer, question.parts.length);
-      const sum = question.parts.reduce((acc, part, i) => {
-        if (part.kind === "grid") return acc + gridRatio(part, given[i]!);
-        return acc + (partCorrect(part, given[i]!) ? 1 : 0);
-      }, 0);
-      return toHalfPoints(sum / question.parts.length, question.points);
-    }
-
-    // Једноструки избор и допуњавање немају делимично тачан одговор.
-    default:
-      return 0;
-  }
+  const units = unitsOf(question, answer);
+  if (!units || units.total < 2) return 0;
+  return units.wrong === 0 && units.correct === units.total - 1
+    ? round(question.points / 2)
+    : 0;
 }
+
+/** Да ли задатак уопште има ставке на које се пола бода може односити. */
+export const supportsHalfPoint = (q: Question) => {
+  const units = unitsOf(q, "");
+  return units !== null && units.total >= 2;
+};
 
 export function scoreExam(
   questions: Question[],

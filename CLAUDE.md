@@ -18,7 +18,8 @@ izmišlja podelu:
 
 ```
 Zbirka    → šest celina po dvadeset uzastopnih brojeva (121–140 … 221–240)
-Testovi iz prethodnih godina → zaseban modul (exam_key ≠ NULL), još prazan
+Testovi sa završnog ispita 2023–2026 → zaseban modul (exam_key ≠ NULL);
+            u studiji su forme merenja A/B/C
 ```
 
 Celina se izvodi iz broja zadatka (`blockOf` u `src/data/types.ts`) i ne piše se
@@ -39,6 +40,11 @@ zadatak. Sva prilagođavanja i nepravilnosti su u `docs/PREPISIVANJE.md`.
 
 Stanje prepisivanja se vidi iz `verify:scoring` — ispisuje broj zadataka po
 celini i tipu, i nabraja brojeve koji nedostaju.
+
+**Testovi sa završnog ispita** (2023–2026): tačni odgovori i bodovanje
+isključivo iz „Упутства за прегледање“ u `zavrsni_testovi/`. Ta fascikla nije
+u gitu — na svakoj strani testa piše da se ne sme javno objavljivati bez
+saglasnosti Zavoda. Ni testovi u `src/data/exams/` ne idu u javni repo.
 
 ## Komande
 
@@ -84,7 +90,7 @@ Skripte čitaju `.env` iz korena repoa (`src/lib/load-env.ts`). **Sam server ne
 artifacts/api-server/     Express 5, Drizzle, HMAC-SHA256 tokeni
   src/data/types.ts         model zadatka (10 tipova) i celine
   src/data/questions/       zadaci, jedan fajl po celini (zadaci-121-140.ts …)
-  src/data/exams/           testovi sa prethodnih završnih ispita
+  src/data/exams/           testovi sa završnog ispita 2023–2026 (forme studije)
   src/lib/scoring.ts        bodovanje vežbanja + sanitizacija
   src/lib/exam-scoring.ts   bodovanje ispita (delimični poeni)
   src/lib/study.ts          faze, grane, rotacija formi, ko sme šta
@@ -142,6 +148,13 @@ prvog zadatka u predaji i proverava da svi ostali pripadaju istoj celini.
 vežbanje). Bodovanje im je različito (0/1 po zadatku naspram delimičnih poena),
 pa je prosek preko oba besmislen.
 
+**Test se boduje tačno po uputstvu za pregledanje.** Zadatak nosi najviše 1
+bod; 0,5 samo gde uputstvo to kaže (`halfPoint`), i to kad je tačno sve osim
+jedne stavke, a ta je ostavljena prazna. Jedna pogrešna stavka daje 0 —
+srazmerno bodovanje (2 od 3 = 0,5 i uz grešku) ne primenjuje nijedan ključ.
+Test je merni instrument studije: pogrešno pola boda menja zavisnu
+promenljivu svima koji ga urade.
+
 **Migracije su idempotentne** (`IF NOT EXISTS`). Nova ide kao
 `lib/db/migrations/000N_ime.sql`, uz izmenu Drizzle šeme.
 
@@ -186,6 +199,10 @@ sitnija od 17px i tabele šire od kartice.
   17px, traka na telefonu se prelamala), a `td { padding }` je gazio `p-0`.
   Pravila za elemente idu u `@layer base`.
 - **Kružići u skeniranoj zbirci nisu pouzdani** — vidi gore.
+- **Tekstualni sloj PDF-a testa ne prati raspored na strani.** U 2023/2 daje
+  ponuđene odgovore drugim redom nego što stoje na strani, a u uputstvu za
+  pregledanje redosled ●/○ u tabeli ne mora da prati kolone. Redosled se uzima
+  sa slike strane, tekst iz sloja.
 - **Skenirani PDF nema tekstualni sloj.** Strane se renderuju u sliku
   (PyMuPDF) i čitaju vizuelno; nejasna rešenja se seku uvećano. Sken je
   telefonski, pa su strane nakrivljene — tabela u rešenju se čita red po red od
@@ -227,4 +244,3 @@ sitnija od 17px i tabele šire od kartice.
 
 - Nivoi po standardima: šifre standarda za geografiju nisu u skenu; bez njih se
   nivo ne unosi.
-- Testovi sa prethodnih završnih ispita (`scripts/import-exam.mjs`).

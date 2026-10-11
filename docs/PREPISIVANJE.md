@@ -61,17 +61,67 @@ Svako ima komentar iznad zadatka, sa razlogom.
 | 142, 149, 168, 187, 208, 236 | u rešenju jedan red bez obojenog kružića (pojam nije ponuđen) | prazan red u `grid`; ko tu nešto oboji, greši |
 | 124 | u rešenju red „Приказује умањена растојања из природе“ ima oba kružića | oba polja moraju biti obojena |
 
+## Testovi sa završnog ispita (2023–2026)
+
+Uneta su sva četiri zvanična testa iz geografije, po 20 zadataka i 20 bodova,
+120 minuta: `src/data/exams/zavrsni-2023.ts` … `zavrsni-2026.ts`. U studiji su
+to forme merenja — istraživač na strani „Студија“ veže forme A, B i C za tri
+od njih.
+
+| Test | Školska godina | Tipovi zadataka | Pola boda moguće |
+|---|---|---|---|
+| `zavrsni-2023` | 2022/2023 (jun) | 12 izbor, 4 tabele, 4 tačno/netačno | 7 zadataka |
+| `zavrsni-2024` | 2023/2024 (jun) | 18 izbor, 1 tabela, 1 tačno/netačno | 2 |
+| `zavrsni-2025` | 2024/2025 | 8 izbor, 7 tačno/netačno, 4 tabele, 1 više odgovora | 11 |
+| `zavrsni-2026` | 2025/2026 | 18 izbor, 1 tabela, 1 više odgovora | 1 |
+
+Kako je prepisano:
+
+1. Izvori stoje u `zavrsni_testovi/` (test i „Упутство за прегледање“ za
+   svaku godinu) i **nisu u gitu**: na svakoj strani piše da se testovi ne
+   smeju umnožavati ni javno objavljivati bez saglasnosti Zavoda.
+2. PDF-ovi imaju tekstualni sloj, ali on ne prati uvek raspored na strani (u
+   2023/2 daje „језеро, пећина, бања“, a na strani piše „језеро, бања,
+   пећина“). Redosled je uzet sa strane, tekst iz sloja; skripta je proverila
+   da svaka ponuđena stavka, tvrdnja i red tabele postoji u PDF-u.
+3. Tačni odgovori i pravila bodovanja isključivo iz uputstva za pregledanje.
+   Tabele u uputstvu su proverene i vizuelno — redosled ●/○ u tekstualnom
+   sloju ne mora da prati kolone.
+4. Slike (2023/2, 2024/20, 2026/14, 2026/17) izvučene su iz PDF-a u punoj
+   rezoluciji: `public/images/zi-<godina>-<zadatak>`.
+
+**Bodovanje.** Sva četiri uputstva imaju isto pravilo: zadatak nosi najviše
+1 bod, svaki odgovor koji se razlikuje od rešenja 0, a 0,5 bodova samo gde je
+predviđeno (`halfPoint`) — kad je tačno sve osim jedne stavke, a ta stavka je
+ostavljena prazna („тачна два одговора и ниједан нетачан“). Dve tačne i jedna
+pogrešna tvrdnja nose 0. Kod zadataka sa dva tačna odgovora (2025/20,
+2026/19) pola boda ne postoji. `verify:exams` za svaki zadatak proverava oba
+slučaja: jedna prazna stavka i jedna pogrešna.
+
+Prilagođavanja (komentar uz zadatak):
+
+| Zadatak | Šta | Kako |
+|---|---|---|
+| 2023/11, 2023/17, 2026/6 | ponuđeni odgovori u dve kolone | čitani red po red, kao u zbirci |
+| 2024/8 | u PDF-u „морe je“ sa latiničnim e i j | uneto ćirilicom |
+| 2026/17 | „кординатама“ | ostavljeno kako stoji u testu |
+
+**Preklapanje sa zbirkom.** Nijedan zadatak iz testova nije kopija zadatka
+121–240. Najsličniji parovi (2025/13 i zbirka 192, 2023/9 i 166, 2024/10 i
+176) dele temu, ne pitanje. Za studiju to znači da testovi mere prenos znanja
+iz iste oblasti, a ne pamćenje odgovora iz vežbanja.
+
 ## Šta još nedostaje
 
 - **Nivoi po standardima.** Zbirka ih za geografiju ne piše uz zadatke; šifre
   standarda su u tabeli koja nije u skenu. Bez nje se nivo ne unosi — bilo bi
   nagađanje. Vežba se po celinama od dvadeset zadataka.
-- **Testovi sa prethodnih završnih ispita** (`scripts/import-exam.mjs`).
 
 ## Posle svake dopune
 
 ```bash
 pnpm run typecheck
 pnpm --filter @workspace/api-server run verify:scoring
+pnpm --filter @workspace/api-server run verify:exams
 pnpm --filter @workspace/api-server run verify:tekst
 ```

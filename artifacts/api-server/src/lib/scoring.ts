@@ -38,6 +38,10 @@ const normalize = (value: string) =>
     .replace(/\s+/g, " ")
     .replace(/[.,;:!?]+$/g, "");
 
+/** Да ли се упис у једно поље признаје; користи га и бодовање испита по ставкама. */
+export const fieldAccepted = (accepted: string[], value: string) =>
+  accepted.some((variant) => normalize(variant) === normalize(value));
+
 const parseIndices = (answer: string) =>
   answer
     .split(",")
@@ -107,9 +111,7 @@ export function scoreAnswer(question: Question, answer: string): boolean {
     case "fill": {
       const given = answer.split("|");
       if (given.length !== question.fields.length) return false;
-      return question.fields.every((field, i) =>
-        field.accepted.some((variant) => normalize(variant) === normalize(given[i] ?? "")),
-      );
+      return question.fields.every((field, i) => fieldAccepted(field.accepted, given[i] ?? ""));
     }
 
     case "match": {
