@@ -175,6 +175,17 @@ export type ExamSummary = {
   questionCount: number;
   attemptsCount: number;
   bestPoints: number | null;
+  /** Испитаник у студији је тест у текућој фази већ предао. */
+  done: boolean;
+};
+
+/**
+ * Листа тестова: испитаник у студији добија само свој тест из отвореног
+ * термина, а `notice` каже зашто види баш то (или ништа).
+ */
+export type ExamList = {
+  notice: string | null;
+  exams: ExamSummary[];
 };
 
 export type ExamDetail = {

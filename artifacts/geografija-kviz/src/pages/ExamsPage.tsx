@@ -6,27 +6,29 @@ import {
   type AnswerMap,
   type ExamAttemptResult,
   type ExamDetail,
-  type ExamSummary,
+  type ExamList,
 } from "@/lib/api";
 
 /** Листа тестова са претходних завршних испита. */
 export function ExamsPage() {
   const [, navigate] = useLocation();
-  const [exams, setExams] = useState<ExamSummary[] | null>(null);
+  const [list, setList] = useState<ExamList | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api<ExamSummary[]>("/exams")
-      .then(setExams)
+    api<ExamList>("/exams")
+      .then(setList)
       .catch((err: Error) => setError(err.message));
   }, []);
 
   if (error) {
     return <p className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-4 py-3">{error}</p>;
   }
-  if (!exams) {
+  if (!list) {
     return <p className="py-16 text-center text-muted-foreground">Учитавање…</p>;
   }
+
+  const { exams, notice } = list;
 
   return (
     <div className="space-y-6">
@@ -34,11 +36,19 @@ export function ExamsPage() {
         <h1 className="text-2xl font-semibold">Тестови из претходних година</h1>
         <p className="mt-1 text-muted-foreground">
           Тестови са завршних испита раде се у целини и бодују се по испитном
-          кључу, где се код већине задатака признаје и делимично тачан одговор.
+          кључу: задатак носи 1 бод, а пола бода само тамо где кључ то
+          предвиђа.
         </p>
       </header>
 
-      {exams.length === 0 ? (
+      {/* Испитаник у студији види само свој тест; порука каже зашто. */}
+      {notice ? (
+        <p className="rounded-xl border border-primary/40 bg-primary/10 px-5 py-4 text-[15px] leading-relaxed">
+          {notice}
+        </p>
+      ) : null}
+
+      {exams.length === 0 && notice ? null : exams.length === 0 ? (
         <div className="rounded-xl border border-border bg-card px-5 py-10 text-center">
           <p className="text-muted-foreground">Још нема унетих тестова.</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
@@ -54,8 +64,9 @@ export function ExamsPage() {
             <button
               key={exam.key}
               type="button"
+              disabled={exam.done}
               onClick={() => navigate(`/testovi/test?key=${encodeURIComponent(exam.key)}`)}
-              className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/60"
+              className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/60 disabled:cursor-default disabled:opacity-60 disabled:hover:border-border"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -74,6 +85,7 @@ export function ExamsPage() {
               <p className="mt-3 text-sm text-muted-foreground">
                 {exam.questionCount} задатака · {exam.totalPoints} поена
                 {exam.durationMinutes ? ` · ${exam.durationMinutes} минута` : ""}
+                {exam.done ? " · предат" : ""}
               </p>
             </button>
           ))}

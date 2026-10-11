@@ -65,7 +65,14 @@ async function denyMeasurement(
   return null;
 }
 
-/** Листа тестова са претходних завршних испита. */
+/**
+ * Листа тестова са претходних завршних испита.
+ *
+ * Испитаник у студији види само тест који му је ротацијом додељен у отвореном
+ * термину, а ван термина ниједан — уз разлог. Да види сва четири, на дан
+ * мерења би кликтао редом и за три добијао „није твој тест“; заштиту ионако
+ * држи `denyMeasurement`, ово је само да ученик зна шта ради.
+ */
 router.get("/exams", requireAuth, async (req, res) => {
   const user = (req as AuthedRequest).user;
   const attempts = await db
@@ -76,19 +83,54 @@ router.get("/exams", requireAuth, async (req, res) => {
     )
     .orderBy(desc(quizAttempts.createdAt));
 
-  res.json(
-    examSummaries().map((exam) => {
-      const mine = attempts.filter((a) => a.examKey === exam.key);
-      return {
-        ...exam,
-        attemptsCount: mine.length,
-        bestPoints:
-          mine.length > 0
-            ? Math.max(...mine.map((a) => Number(a.pointsEarned ?? 0)))
-            : null,
-      };
-    }),
+  const summaries = examSummaries().map((exam) => {
+    const mine = attempts.filter((a) => a.examKey === exam.key);
+    return {
+      ...exam,
+      attemptsCount: mine.length,
+      bestPoints:
+        mine.length > 0
+          ? Math.max(...mine.map((a) => Number(a.pointsEarned ?? 0)))
+          : null,
+      done: false,
+    };
+  });
+
+  if (user.role === "admin" || !user.studyArm) {
+    res.json({ notice: null, exams: summaries });
+    return;
+  }
+
+  const settings = await getSettings();
+  const window = canMeasure(settings);
+  if (!window.ok) {
+    res.json({ notice: window.reason, exams: [] });
+    return;
+  }
+
+  const assigned = assignedExam(user, settings);
+  if (!assigned) {
+    res.json({
+      notice: "Теби још није додељен тест за ову фазу. Јави се наставнику.",
+      exams: [],
+    });
+    return;
+  }
+
+  const done = attempts.some(
+    (a) =>
+      a.examKey === assigned.examKey &&
+      a.phase === settings.currentPhase &&
+      a.invalidatedAt === null,
   );
+  res.json({
+    notice: done
+      ? "Тест за ову проверу знања је предат."
+      : "Ово је твој тест за ову проверу знања. Ради се само једном, у целини.",
+    exams: summaries
+      .filter((e) => e.key === assigned.examKey)
+      .map((e) => ({ ...e, done })),
+  });
 });
 
 router.get("/exams/:key", requireAuth, async (req, res) => {

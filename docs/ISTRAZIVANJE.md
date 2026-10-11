@@ -164,15 +164,28 @@ nađena na celom odeljenju je izgubljeno merenje.
 
 ## Redosled pred prvo merenje
 
-1. Uneti tri završna ispita iz prethodnih godina (`scripts/import-exam.mjs`)
-2. `Studija → Paralelne forme` — vezati ih za A, B i C
-3. `Studija → Upisivanje` — upisati odeljenja, podeliti na grane
+1. Testovi su uneti: zvanični završni ispiti iz geografije 2023–2026
+   (`src/data/exams/`), bodovani po uputstvu za pregledanje
+2. `Studija → Paralelne forme` — vezati tri od njih za A, B i C
+3. `Admin → Novi nalog` za svakog učenika, pa `Studija → Upisivanje u
+   studiju` — izabrati granu i odeljenje, čekirati učenike, `Upiši`
 4. Prikupiti **potpisane saglasnosti roditelja** (učenici su maloletni) i
    odobrenje etičke komisije; tek onda čekirati `consent_research`
 5. `verify:study` mora da prođe bez problema
 6. Probni prolaz, pa `backup`
-7. `Studija → Tekuća faza: T0`, otvoriti termin
-8. Posle merenja: zatvoriti termin, `backup`, pa `currentPhase: vezbanje`
+7. `Studija → Tekuća faza: T0 — почетно мерење`, uključiti „Термин мерења
+   отворен“
+8. Posle merenja: isključiti termin, `backup`, pa fazu na „Вежбање“ (i
+   uključiti „Вежбање отворено“)
+9. T30 i T90 isto kao korak 7–8; formu za svaku fazu određuje rotaciona
+   grupa — istraživač ne bira ništa
+
+**Šta učenik vidi.** U „Цео тест“ učesnik studije vidi **samo svoj test**
+dok je termin otvoren (koji je, određuje rotaciona grupa i faza), a van
+termina nijedan, uz poruku zašto. Posle predaje test stoji kao „предат“ i ne
+može se ponoviti u istoj fazi. Učenik koji nije upisan u studiju vidi sva
+četiri testa i vežba ih kad hoće — zato se učesnici upisuju pre nego što
+dobiju pristup aplikaciji.
 
 ---
 
@@ -187,8 +200,8 @@ nađena na celom odeljenju je izgubljeno merenje.
 - Ko nema saglasnost, i dalje koristi aplikaciju za učenje; samo ne ulazi u
   izvoz
 
-### Otvoreno
+### Lozinke
 
-`quiz_users.password_plain` čuva lozinku u čitljivom obliku, da je nastavnik
-vidi u admin panelu. Učenici su maloletni; pred etičku komisiju ovo treba
-ukloniti zajedno sa prikazom lozinke, a nastavniku ostaviti resetovanje.
+U ovom repou nema kolone `password_plain` (aplikacija za srpski ju je imala):
+lozinka se čuva samo kao hash, a nastavnik je resetuje kroz admin panel ili
+`reset-password`.
