@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, isNotNull, sql } from "drizzle-orm";
 import { db, studySettings, users, type StudySettings, type User } from "@workspace/db";
 
 /**
@@ -92,11 +92,15 @@ export async function getSettings(): Promise<StudySettings> {
  * Ротациона група се додељује аутоматски, у најмању — да групе остану
  * приближно једнаке. Ручна додела би их с временом развукла, а уравнотежење
  * ради само ако су групе сличне величине.
+ *
+ * Броје се само тренутно уписани: исписан испитаник задржава групу (да при
+ * поновном упису настави истом формом), али више не заузима место у њој.
  */
 export async function assignRotationGroup(): Promise<number> {
   const counts = await db
     .select({ group: users.rotationGroup, n: sql<number>`count(*)::int` })
     .from(users)
+    .where(isNotNull(users.studyArm))
     .groupBy(users.rotationGroup);
 
   const size = new Map<number, number>(ROTATION_GROUPS.map((g) => [g, 0]));

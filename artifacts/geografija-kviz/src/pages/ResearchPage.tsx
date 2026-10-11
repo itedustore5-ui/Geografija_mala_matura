@@ -209,7 +209,7 @@ export default function ResearchPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
                   <th className="border-b border-border py-2 pr-3 font-medium">Испитаник</th>
@@ -221,11 +221,13 @@ export default function ResearchPage() {
                       {p}
                     </th>
                   ))}
+                  <th className="border-b border-border py-2 pr-3 font-medium">Сагласност</th>
+                  <th className="border-b border-border py-2 font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {completion.rows.map((row) => (
-                  <CompletionLine key={row.id} row={row} />
+                  <CompletionLine key={row.id} row={row} onChanged={load} />
                 ))}
               </tbody>
             </table>
@@ -422,7 +424,46 @@ function Enrollment({ enrolledIds, onDone }: { enrolledIds: number[]; onDone: ()
   );
 }
 
-function CompletionLine({ row }: { row: CompletionRow }) {
+/**
+ * Ред попуњености, са сагласношћу и исписивањем.
+ *
+ * Исписивање није брисање: већ урађена мерења остају у бази (сервер задржава
+ * и псеудоним и ротациону групу), али испитаник више не добија тестове у
+ * терминима мерења и испада из извоза. Брисање налога са мерењима дозвољено је
+ * тек после исписивања — да се мерење не изгуби једним погрешним кликом.
+ */
+function CompletionLine({ row, onChanged }: { row: CompletionRow; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function update(body: Record<string, unknown>) {
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/research/participants/${row.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function unenroll() {
+    const ok = window.confirm(
+      `Испиши „${row.fullName}“ из студије?
+
+` +
+        "Више неће добијати тестове у терминима мерења и неће улазити у извоз. " +
+        "Већ урађена мерења остају у бази. Поновним уписом добија исти псеудоним " +
+        "и исту ротациону групу.",
+    );
+    if (ok) void update({ studyArm: null });
+  }
+
   return (
     <tr>
       <td className="border-b border-border/50 py-2 pr-3">
@@ -453,6 +494,31 @@ function CompletionLine({ row }: { row: CompletionRow }) {
           </td>
         );
       })}
+      <td className="border-b border-border/50 py-1 pr-3">
+        {/* Чекира се тек уз потписану сагласност родитеља и одобрење етичке
+            комисије; без ње испитаник ради, али не улази у извоз. */}
+        <label className="flex min-h-11 cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            className="size-5"
+            checked={row.consentResearch}
+            disabled={busy}
+            onChange={(e) => void update({ consentResearch: e.target.checked })}
+          />
+          <span className="text-xs text-muted-foreground">{row.consentResearch ? "да" : "не"}</span>
+        </label>
+      </td>
+      <td className="border-b border-border/50 py-1 whitespace-nowrap">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={unenroll}
+          className="min-h-11 rounded-lg border border-border px-3 text-sm text-muted-foreground hover:border-rose-500/60 hover:text-rose-500 disabled:opacity-50"
+        >
+          Испиши
+        </button>
+        {error ? <span className="ml-2 text-xs text-rose-500">{error}</span> : null}
+      </td>
     </tr>
   );
 }

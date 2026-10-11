@@ -170,7 +170,8 @@ nađena na celom odeljenju je izgubljeno merenje.
 3. `Admin → Novi nalog` za svakog učenika, pa `Studija → Upisivanje u
    studiju` — izabrati granu i odeljenje, čekirati učenike, `Upiši`
 4. Prikupiti **potpisane saglasnosti roditelja** (učenici su maloletni) i
-   odobrenje etičke komisije; tek onda čekirati `consent_research`
+   odobrenje etičke komisije; tek onda čekirati „Сагласност“ u
+   `Studija → Popunjenost`
 5. `verify:study` mora da prođe bez problema
 6. Probni prolaz, pa `backup`
 7. `Studija → Tekuća faza: T0 — почетно мерење`, uključiti „Термин мерења
@@ -179,6 +180,22 @@ nađena na celom odeljenju je izgubljeno merenje.
    uključiti „Вежбање отворено“)
 9. T30 i T90 isto kao korak 7–8; formu za svaku fazu određuje rotaciona
    grupa — istraživač ne bira ništa
+
+**Saglasnost i ispisivanje** — `Studija → Popunjenost`, u redu ispitanika:
+
+- kvadratić **„Сагласност“** se čekira tek uz potpisanu saglasnost roditelja i
+  odobrenje etičke komisije; bez nje ispitanik radi, ali ne ulazi u izvoz;
+- **„Испиши“** izbacuje ispitanika iz studije: više ne dobija testove u
+  terminima merenja i ispada iz izvoza. Već urađena merenja ostaju u bazi, a
+  pseudonim i rotaciona grupa se pamte — ponovnim upisom nastavlja istom
+  formom, a test iz faze koju je već uradio ne može ponoviti;
+- nalog sa merenjima se ne može obrisati dok je ispitanik u studiji. Za
+  potpuno brisanje (npr. kad roditelj povuče saglasnost i traži brisanje
+  podataka): prvo „Испиши“, pa `Admin → obriši nalog` — to briše i sva njegova
+  merenja, nepovratno.
+
+Ispisivanje i promena saglasnosti beleže se u log servera (ko, kome, kada),
+kao i poništavanje pokušaja.
 
 **Šta učenik vidi.** U „Цео тест“ učesnik studije vidi **samo svoj test**
 dok je termin otvoren (koji je, određuje rotaciona grupa i faza), a van

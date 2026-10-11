@@ -103,7 +103,15 @@ router.patch("/research/settings", async (req, res) => {
 });
 
 // ── Испитаници ────────────────────────────────────────────────────────────
+// Исписивање из студије је `studyArm: null`. Псеудоним и ротациона група
+// остају: већ урађена мерења тако остају везана за исту шифру, а ако се
+// испитаник поново упише, наставља истом формом. Из извоза испада сам, јер
+// извоз узима само уписане. Мерења се не бришу — за то служи брисање налога,
+// које је дозвољено тек кад испитаник више није у студији.
 router.patch("/research/participants/:id", async (req, res) => {
+  // `unknown` између, као у admin.ts: Request са параметром путање не прелази
+  // директно у AuthedRequest.
+  const me = (req as unknown as AuthedRequest).user;
   const id = Number(req.params.id);
   const body = req.body as {
     classGroup?: string | null;
@@ -143,6 +151,19 @@ router.patch("/research/participants/:id", async (req, res) => {
     res.status(404).json({ message: "Испитаник није пронађен." });
     return;
   }
+
+  // Ко је кога исписао и ко је мењао сагласност — као и поништавање покушаја,
+  // ово се после мора моћи објаснити етичкој комисији.
+  if (body.studyArm === null) {
+    req.log.warn({ participantId: id, researchId: updated.researchId, byUserId: me.id }, "Ispitanik ispisan iz studije");
+  }
+  if (typeof body.consentResearch === "boolean") {
+    req.log.warn(
+      { participantId: id, researchId: updated.researchId, consent: body.consentResearch, byUserId: me.id },
+      "Promenjena saglasnost ispitanika",
+    );
+  }
+
   res.json({ id: updated.id, researchId: updated.researchId });
 });
 
